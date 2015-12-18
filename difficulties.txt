@@ -1,0 +1,4 @@
+// HowTo Bounding boxes
+// Word Detection? FCS
+// Caffe or Theano?
+// GUI
