@@ -1,16 +1,16 @@
 ### Modules
 
-* Detection
-    * Preprocessing
-    * Segmentation
-* Recognition
-    * Character
-    * Word
+* #### Detection
+    * ##### Preprocessing
+    * ##### Segmentation
+* #### Recognition
+    * ##### Character
+    * ##### Word
 
 ### Description of modules
 
 * **Detection** aka Localization : This contains breaking down the image into image patches, pushing it through a text / no-text classifier and spewing out word bounding box.
-* **Recognition** aka Classification : This contains recognizing individual words from the bounding boxes and give a nx1x3 matrix, where n is the number of letters in the word. This matrix is transferred to a spell corrector which finds out the intended word.
+* **Recognition** aka Classification : This contains recognizing individual words from the bounding boxes and give a letter stream. This is transferred to a spell corrector which finds out the intended word.
 
 ### Algorithms in use and their importance
 
@@ -27,6 +27,6 @@
 * ?? (2.1)
     * Divide word BBox into character BBox
 * Recognizer CNN (2.1)
-    * Do a character sensitive search and give a letter stream (*nx1x3* matrix)
+    * Do a character sensitive search and give a letter stream
 * Spell Checker (2.2)
     * Take in the letter streams and give RESULT!
