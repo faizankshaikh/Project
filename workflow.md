@@ -1,16 +1,16 @@
 ### Modules
 
-* Detection
-    * Preprocessing
-    * Segmentation
-* Recognition
-    * Character
-    * Word
+* #### Detection
+    * ##### Preprocessing
+    * ##### Segmentation
+* #### Recognition
+    * ##### Character
+    * ##### Word
 
 ### Description of modules
 
 * **Detection** aka Localization : This contains breaking down the image into image patches, pushing it through a text / no-text classifier and spewing out word bounding box.
-* **Recognition** aka Classification : This contains recognizing individual words from the bounding boxes and give a nx1x3 matrix, where n is the number of letters in the word. This matrix is transferred to a spell corrector which finds out the intended word.
+* **Recognition** aka Classification : This contains recognizing individual words from the bounding boxes and give a letter stream. This is transferred to a spell corrector which finds out the intended word.
 
 ### Algorithms in use and their importance
 
@@ -18,15 +18,25 @@
     * Before putting images through pipeline, normalization reduces work by decreasing the range of variance of image, and thus updating feature maps is easier.
 * Grayscale conversion : (1.1)
     * For character recognition, color does not matter. So instead of confusing the classifiers with color, put them out of misery.
+* (OPTIMIZATION) Whitening : (1.1)
 * Patch extraction : (1.2)
     * Divide image into patches of different sizes, so that when detector CNN does its work, it has more options.
+* (OPTIMIZATION) Random Forest Cleaner : (1.2)
 * Detector CNN : (1.2)
     * Take the patches and tell if contain character or not
-* ??  (1.2)
+* ??  (1.2) (Non-Max Suppression, Run Length Smoothing, Otsu Thresholding)
     * Create a word BBox
-* ?? (2.1)
+* ?? (2.1) 
     * Divide word BBox into character BBox
 * Recognizer CNN (2.1)
-    * Do a character sensitive search and give a letter stream (*nx1x3* matrix)
+    * Do a character sensitive search and give a letter stream
 * Spell Checker (2.2)
     * Take in the letter streams and give RESULT!
+    
+### Datasets to be used
+
+* Chars74k Natural scene subset
+* Cifar-10 ?
+* SVT for testing ?
+* Synthetic generation
+* Weak baseline system for data generation
