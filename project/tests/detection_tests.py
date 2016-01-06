@@ -1,5 +1,14 @@
 from nose.tools import *
-from packages import detection
+from packages.detection import Detection
 
-def printer_test():
-    assert_equal(detection.printer(), 'All is Well')
+detect = Detection()
+
+def object_tester():
+    assert_equal(detect.tester, 100)
+    
+def data_loader_tester():
+    detect.data_loader()
+    assert_equal(str(type(detect.data)), "<class 'pandas.core.frame.DataFrame'>")
+    
+def visualize_tester():
+    detect.visualize()
