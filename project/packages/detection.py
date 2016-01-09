@@ -1,4 +1,4 @@
-#TODO Write module 1 here
+from __future__ import division
 
 import pylab
 import random
@@ -20,7 +20,8 @@ chars74k_root = 'English/'
 
 class Detection(object):
     def __init__(self):
-        self.tester = 100
+        # self.tester = 100
+        pass
             
     def data_loader(self):
         '''This function loads data (specifically chars74k)
@@ -29,7 +30,7 @@ class Detection(object):
         data = pd.read_csv(script_root + 'LISTFILE.txt', sep = ' ', header = None)
         
         data_x = np.zeros((data.shape[0], 1, 32, 32)).astype('float32')
-        data_y = np.zeros((data.shape[0], )).astype('int32')
+        data_y = np.ones((data.shape[0], )).astype('int32')
         
         for idx, path in enumerate(data[0]):
             img = imread(data_root + chars74k_root + path)
@@ -38,18 +39,20 @@ class Detection(object):
             if len(img.shape) == 3:
                 #TODO check rgb->grey conversion value
                 data_x[idx, ...] = img.dot([0.299, 0.587, 0.144])
-            elif len(img.shape) == 2:
-                data_x[idx, ...] = img
             else:
-                raise
+                data_x[idx, ...] = img
                 
-            return (data_x, data_y)
+        return (data_x, data_y)
         
-    def visualize(self):
-        '''This function visualizes data'''
-        i = random.randrange(0, self.data[0].count())
-        img = imread(data_root + chars74k_root + self.data[0][i])
+    def visualize(self, dataset):
+        '''This function visualizes data
+        
+        Input : numpy array (image_number, color_channels, height, width)
+        '''
+        i = random.randrange(0, dataset.shape[0])
+        img = np.reshape(dataset[i, ...], ( dataset.shape[2], dataset.shape[3] ))
         pylab.imshow(img)
+        pylab.gray()
         pylab.show()
         
     def shiftup(self, dataset):
@@ -121,10 +124,10 @@ class Detection(object):
     def augment_creator(self, dataset):
         '''This function augments data
         '''
-        data1_x = shiftup(dataset)
-        data2_x = shiftdown(dataset)
-        data3_x = shiftleft(dataset)
-        data4_x = shiftright(dataset)
+        data1_x = self.shiftup(dataset)
+        data2_x = self.shiftdown(dataset)
+        data3_x = self.shiftleft(dataset)
+        data4_x = self.shiftright(dataset)
         
         data1_y = np.zeros((data1_x.shape[0], )).astype('int')
         data2_y = np.zeros((data2_x.shape[0], )).astype('int')
