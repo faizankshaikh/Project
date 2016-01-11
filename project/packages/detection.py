@@ -1,5 +1,6 @@
 from __future__ import division
 
+import os
 import pylab
 import random
 import numpy as np
@@ -20,7 +21,6 @@ chars74k_root = 'English/'
 
 class Detection(object):
     def __init__(self):
-        # self.tester = 100
         pass
             
     def data_loader(self):
@@ -115,7 +115,6 @@ class Detection(object):
         '''This function normalizes data
         Constraints: It consider data_x is passed (i.e. without labels)
         '''
-        #TODO integer division or float division
         proc_data = dataset / dataset.std(axis = None)
         proc_data -= proc_data.mean()
         
@@ -141,3 +140,86 @@ class Detection(object):
         data_y = np.concatenate([data1_y, data2_y, data3_y, data4_y])
         
         return data_x, data_y
+    
+    def net_setter(self):
+        '''This function sets the architecture of CNN
+        '''
+        cnn_layers = [
+            ('input', layers.InputLayer),
+            ('conv1', layers.Conv2DLayer),
+            ('pool1', layers.MaxPool2DLayer),
+            ('dropout1', layers.DropoutLayer),
+            ('conv2', layers.Conv2DLayer),
+            ('pool2', layers.MaxPool2DLayer),
+            ('dropout2', layers.DropoutLayer),
+            ('conv3', layers.Conv2DLayer),
+            ('hidden4', layers.DenseLayer),
+            ('output', layers.DenseLayer),
+        ]
+        
+        self.net = NeuralNet(
+            layers = cnn_layers,
+            input_shape = (None, 1, 32, 32),
+            conv1_num_filters = 32, conv1_filter_size = (5, 5),
+            pool1_pool_size = (2, 2),
+            dropout1_p = 0.2,
+            conv2_num_filters = 64, conv2_filter_size = (5, 5),
+            pool2_pool_size = (2, 2),
+            dropout2_p = 0.2,
+            conv3_num_filters = 128, conv3_filter_size = (5, 5),
+            hidden4_num_units = 128,
+            output_num_units = 2, output_nonlinearity = softmax,
+
+            batch_iterator_train = BatchIterator(batch_size = 1000),
+            batch_iterator_test = BatchIterator(batch_size = 1000),
+
+            update=nesterov_momentum,
+            update_learning_rate = 0.01,
+            update_momentum = 0.9,
+
+            use_label_encoder = True,
+            regression = False,
+            max_epochs = 50,
+            verbose = 1,
+        )
+
+    def train_setter(self, positive_x, negative_x, positive_y, negative_y):
+        '''This function combines positive and negative data
+        '''
+        X = np.vstack((positive_x, negative_x)).astype('float32')
+        y = np.concatenate(([positive_y, negative_y])).astype('int32')
+        
+        return X, y
+            
+    def trainer(self, X, y):
+        '''This function trains CNN on data
+        '''
+        self.net.fit(X, y)
+        
+    def predicter(self, X, option = 1):
+        '''This function gives prediction
+        '''
+        if option:
+            pred = self.net.predict(X)
+        else:
+            pred = self.net.predict_proba(X)
+            
+    def train_saver(self, save_file):
+        #TODO try catch
+        f = open(os.path.join(model_root, save_file), 'wb')
+        pkl.dump(self.net, f)
+        f.close()
+        
+    def generate_heatmap(self, image, prediction, patch_0, patch_1, option = 1):
+        '''This function plots a text saliency map
+        '''
+        if option:
+            heatmap = prediction[:, 1].reshape((patch_0, patch_1))
+        else:
+            heatmap = prediction[:, 0].reshape((patch_0, patch_1))
+            
+        pylab.pcolor(heatmap[::-1])
+        pylab.axis('off')
+        pylab.show()
+        pylab.imshow(image)
+        pylab.show()
