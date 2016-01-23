@@ -40,7 +40,6 @@ pylab.gray()
 pylab.show()
 '''
 def main():
-    
     pred = []
     id_arr = []
     start_time = time.time()
@@ -139,9 +138,32 @@ def main():
         real_pred = classer(predict)
         real_pred = map(str, real_pred)
         letter_stream = ''.join(real_pred)
+        
+        def str_corr(letter_stream):
+            cnt_lwr=0
+            cnt_upr=0
+            for i in letter_stream:
+                if(i.islower()):
+                    cnt_lwr += 1;
+                else:
+                    cnt_upr +=1;
+            if(cnt_lwr > cnt_upr):
+                if(letter_stream[0].isupper()):
+                     letter_stream = letter_stream.title()
+                else:
+                     letter_stream = letter_stream.lower()
+            else:
+                 if(letter_stream[0].isupper()):
+                     letter_stream = letter_stream.title()
+                 else:
+                     letter_stream = letter_stream.upper()
+#rint letter_stream
+        str_corr(letter_stream)
+        
 
         #print 'Probable word is: ', correct(letter_stream)[0]
         
+
         pred.append("'" + correct(letter_stream)[0] + "'")
         
     pd.DataFrame({'image': id_arr, 'words' : pred }).to_csv(filename, index = False, header = False, quoting = csv.QUOTE_MINIMAL)
