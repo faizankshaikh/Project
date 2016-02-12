@@ -80,13 +80,14 @@ def main():
         heatmap = preder[:, 1].reshape((patches.shape[0], patches.shape[1]))
 
         a = np.reshape(heatmap, patches.shape[1]*patches.shape[0])
+        a = np.hstack([np.zeros(5), a, np.zeros(5)]) # zero padding
 
         from scipy.ndimage.filters import maximum_filter
-        peakind = np.nonzero(maximum_filter (a, size=(patches.shape[1]/5)*0.75) == a)[0]
+        peakind = np.nonzero(maximum_filter (a, size=(23)) == a)[0] # change filter size
 
         word = np.zeros((len(peakind), 1, 32, 32))
         for idx, item in enumerate(peakind):
-            word[idx, ...] = tester[item, 0, :, :]
+            word[idx, ...] = tester[item - 5, 0, :, :] # check for zero pad
             
         word = word.astype('float32')
 
@@ -108,7 +109,6 @@ def main():
         real_pred = map(str, real_pred)
         letter_stream = ''.join(real_pred)
                 
-        print letter_stream
         if image_width > image_height:
             if d.suggest(letter_stream):
                 pred.append(d.suggest(letter_stream)[0])
