@@ -3,6 +3,7 @@ import random
 import pylab
 import time
 import csv
+import enchant
 import pandas as pd
 import numpy as np
 import cPickle as pkl
@@ -19,7 +20,7 @@ icdar_root = 'icdar15/'
 test_root = 'Challenge2_Test_Task3_Images'
 
 test_size = 1095
-
+alphabet = 'abcdefghijklmnopqrstuvwxyz'
 filename = 'sub01.txt'
 
 # load models
@@ -30,6 +31,8 @@ f.close()
 f = open(model_root + 'recognizer.pkl', 'rb')
 recognizer = pkl.load(f)
 f.close()
+
+d = enchant.Dict()
 
 '''
 # visualize dataset
@@ -76,51 +79,54 @@ def main():
 
         heatmap = preder[:, 1].reshape((patches.shape[0], patches.shape[1]))
 
-        a = np.reshape(heatmap, patches.shape[1]*patches.shape[0])
+        predict_signal = np.reshape(heatmap, patches.shape[1]*patches.shape[0])
+        
+        x_1 = np.arange(patches.shape[1])
+        y_1 = np.zeros(patches.shape[1])
+        x_2 = np.arange(32, patches.shape[1] + 32)
+        y_2 = np.ones(patches.shape[1])
+        scores_ = predict_signal
+        
+        boxes = np.stack((x_1, y_1, x_2, y_2, scores_)).T
+        
+        def nms(dets, thresh):
+            x1 = dets[:, 0]
+            y1 = dets[:, 1]
+            x2 = dets[:, 2]
+            y2 = dets[:, 3]
+            scores = dets[:, 4]
 
-        from scipy.ndimage.filters import maximum_filter
-        peakind = np.nonzero(maximum_filter (a, size=(patches.shape[1]/5)*0.75) == a)[0]
-        breakind = np.nonzero(maximum_filter((1 - a), size=(patches.shape[1]/5)) == (1 - a))[0]
+            areas = (x2 - x1 + 1) * (y2 - y1 + 1)
+            order = scores.argsort()[::-1]
+
+            keep = []
+            while order.size > 0:
+                i = order[0]
+                keep.append(i)
+                xx1 = np.maximum(x1[i], x1[order[1:]])
+                yy1 = np.maximum(y1[i], y1[order[1:]])
+                xx2 = np.minimum(x2[i], x2[order[1:]])
+                yy2 = np.minimum(y2[i], y2[order[1:]])
+
+                w = np.maximum(0.0, xx2 - xx1 + 1)
+                h = np.maximum(0.0, yy2 - yy1 + 1)
+                inter = w * h
+                ovr = inter / (areas[i] + areas[order[1:]] - inter)
+
+                inds = np.where(ovr <= thresh)[0]
+                order = order[inds + 1]
+
+            return np.sort(np.array(keep, dtype = int))
+            
+        peakind = nms(boxes,thresh=0)
 
         word = np.zeros((len(peakind), 1, 32, 32))
         for idx, item in enumerate(peakind):
-            word[idx, ...] = tester[item, 0, :, :]
+            word[idx, ...] = tester[item, 0, :, :] 
             
         word = word.astype('float32')
 
         predict = recognizer.predict(word)
-
-        # Define word recognition functions
-        import re, collections
-
-        def words(text): return re.findall('[a-z]+', text.lower()) 
-
-        def train(features):
-            model = collections.defaultdict(lambda: 1)
-            for f in features:
-                model[f] += 1
-            return model
-
-        NWORDS = train(words(file(data_root + 'big.txt').read()))
-
-        alphabet = 'abcdefghijklmnopqrstuvwxyz'
-
-        def edits1(word):
-           splits     = [(word[:i], word[i:]) for i in range(len(word) + 1)]
-           deletes    = [a + b[1:] for a, b in splits if b]
-           transposes = [a + b[1] + b[0] + b[2:] for a, b in splits if len(b)>1]
-           replaces   = [a + c + b[1:] for a, b in splits for c in alphabet if b]
-           inserts    = [a + c + b     for a, b in splits for c in alphabet]
-           return set(deletes + transposes + replaces + inserts)
-
-        def known_edits2(word):
-            return set(e2 for e1 in edits1(word) for e2 in edits1(e1) if e2.lower() in NWORDS)
-
-        def known(words): return set(w for w in words if w.lower() in NWORDS)
-
-        def correct(word):
-            candidates = known([word]) or known(edits1(word)) or known_edits2(word) or [word]
-            return sorted(candidates,  key=NWORDS.get, reverse = True)
 
         def classer(arrayer):
             classer_array = []
@@ -134,47 +140,23 @@ def main():
                 else : 
                     print 'Is the array correct!?'
             return classer_array
-
         real_pred = classer(predict)
         real_pred = map(str, real_pred)
         letter_stream = ''.join(real_pred)
         
-        def str_corr(letter_stream):
-            cnt_lwr=0
-            cnt_upr=0
-            for i in letter_stream:
-                if(i.islower()):
-                    cnt_lwr += 1;
-                else:
-                    cnt_upr +=1;
-            if(cnt_lwr > cnt_upr):
-                if(letter_stream[0].isupper()):
-                     letter_stream = letter_stream.title()
-                else:
-                     letter_stream = letter_stream.lower()
+        print letter_stream
+                
+        if image_width > image_height:
+            if d.suggest(letter_stream):
+                pred.append(d.suggest(letter_stream)[0])
             else:
-                 if(letter_stream[0].isupper()):
-                     letter_stream = letter_stream.title()
-                 else:
-                     letter_stream = letter_stream.upper()
-        #rint letter_stream
-        #str_corr(letter_stream)
+                pred.append(letter_stream)    
+        else:
+            pred.append(letter_stream)
         
-
-        #print 'Probable word is: ', correct(letter_stream)[0]
-        
-
-        pred.append("'" + correct(letter_stream)[0] + "'")
-        
-    pd.DataFrame({'image': id_arr, 'words' : pred }).to_csv(filename, index = False, header = False, quoting = csv.QUOTE_MINIMAL)
-    
-    f = open(filename, 'r')
-    text = f.read()
-    f.close()
-    text = text.replace("'", "\"")
-    f = open(filename, 'w')
-    f.write(text)
-    f.close()
+    with open('sub01.txt', 'w') as f:
+        for l1, l2 in zip(id_arr, pred):
+            f.write(l1 + ', ' + '"' + l2 + '"' + '\n')
     
     print "time taken: ", time.time() - start_time
     
